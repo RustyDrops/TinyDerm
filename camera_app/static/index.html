@@ -1,0 +1,517 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TinyDerm Vision — Real-Time Lesion Scanner</title>
+  <style>
+    :root {
+      --bg: #0f172a;
+      --card-bg: #1e293b;
+      --primary: #38bdf8;
+      --primary-hover: #0284c7;
+      --accent: #10b981;
+      --warning: #f59e0b;
+      --danger: #ef4444;
+      --text: #f8fafc;
+      --text-muted: #94a3b8;
+      --border: #334155;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
+    body { background-color: var(--bg); color: var(--text); padding: 1.5rem 1rem; min-height: 100vh; display: flex; flex-direction: column; align-items: center; }
+
+    .container { width: 100%; max-width: 800px; display: flex; flex-direction: column; gap: 1.25rem; }
+
+    header { text-align: center; }
+    header h1 { font-size: 1.75rem; font-weight: 800; color: #fff; display: flex; align-items: center; justify-content: center; gap: 0.5rem; }
+    header p { color: var(--text-muted); font-size: 0.95rem; margin-top: 0.25rem; }
+
+    /* Mandatory Medical Disclaimer */
+    .disclaimer-box {
+      background: rgba(245, 158, 11, 0.12);
+      border: 1px solid var(--warning);
+      border-radius: 8px;
+      padding: 0.85rem 1.1rem;
+      font-size: 0.85rem;
+      line-height: 1.4;
+      color: #fef3c7;
+      display: flex;
+      align-items: flex-start;
+      gap: 0.65rem;
+    }
+    .disclaimer-icon { font-size: 1.3rem; line-height: 1; flex-shrink: 0; }
+
+    /* Camera Viewport */
+    .viewfinder-card {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 1rem;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .video-wrapper {
+      position: relative;
+      width: 100%;
+      max-width: 480px;
+      aspect-ratio: 1 / 1;
+      border-radius: 12px;
+      overflow: hidden;
+      background: #000;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    video, canvas#snapshotCanvas {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    canvas#snapshotCanvas {
+      display: none;
+    }
+
+    /* Target Reticle Overlay */
+    .reticle {
+      position: absolute;
+      width: 180px;
+      height: 180px;
+      border: 2px dashed rgba(56, 189, 248, 0.6);
+      border-radius: 50%;
+      pointer-events: none;
+      box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.35);
+      animation: pulse 2s infinite ease-in-out;
+    }
+    @keyframes pulse {
+      0%, 100% { transform: scale(1); border-color: rgba(56, 189, 248, 0.7); }
+      50% { transform: scale(1.05); border-color: rgba(56, 189, 248, 1); }
+    }
+
+    .reticle-label {
+      position: absolute;
+      bottom: 12px;
+      background: rgba(15, 23, 42, 0.75);
+      backdrop-filter: blur(4px);
+      padding: 4px 12px;
+      border-radius: 20px;
+      font-size: 0.75rem;
+      color: var(--primary);
+      pointer-events: none;
+    }
+
+    /* Controls */
+    .controls-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.75rem;
+      margin-top: 1rem;
+      justify-content: center;
+      width: 100%;
+    }
+
+    button {
+      background: var(--primary);
+      color: #0f172a;
+      border: none;
+      padding: 0.65rem 1.25rem;
+      font-size: 0.95rem;
+      font-weight: 600;
+      border-radius: 8px;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      transition: background 0.2s, transform 0.1s;
+    }
+    button:hover { background: var(--primary-hover); }
+    button:active { transform: scale(0.98); }
+    button:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    button.secondary {
+      background: var(--border);
+      color: var(--text);
+    }
+    button.secondary:hover { background: #475569; }
+
+    .toggle-label {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      cursor: pointer;
+      user-select: none;
+    }
+
+    /* Results Card */
+    .result-card {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 1.25rem;
+      display: none;
+      animation: fadeIn 0.3s ease-out;
+    }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+
+    .result-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 0.75rem;
+    }
+    .result-title { font-size: 1.3rem; font-weight: 700; }
+    .badge {
+      display: inline-block;
+      padding: 0.25rem 0.65rem;
+      border-radius: 6px;
+      font-size: 0.8rem;
+      font-weight: 700;
+      color: #fff;
+    }
+
+    .prob-bar-container {
+      width: 100%;
+      height: 12px;
+      background: var(--border);
+      border-radius: 6px;
+      overflow: hidden;
+      margin: 0.5rem 0 1rem;
+    }
+    .prob-bar-fill {
+      height: 100%;
+      width: 0%;
+      background: var(--accent);
+      transition: width 0.4s ease;
+    }
+
+    .class-dist-list {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+      gap: 0.5rem;
+      margin-top: 1rem;
+      font-size: 0.8rem;
+    }
+    .class-dist-item {
+      background: #0f172a;
+      padding: 0.5rem 0.75rem;
+      border-radius: 6px;
+      display: flex;
+      justify-content: space-between;
+    }
+
+    .hidden { display: none !important; }
+  </style>
+</head>
+<body>
+
+  <div class="container">
+    <header>
+      <h1>🔬 TinyDerm Vision</h1>
+      <p>Autonomous Edge Medical-Image Compression Prototype (CPU Inference &lt; 1ms)</p>
+    </header>
+
+    <!-- Medical Notice -->
+    <div class="disclaimer-box">
+      <div class="disclaimer-icon">⚠️</div>
+      <div>
+        <strong>Research-Only Prototype Notice:</strong>
+        This software is an autonomous experimental prototype for research and compression evaluation. It is <strong>NOT a clinical diagnostic tool or medical device</strong> and must not be used as a substitute for qualified medical judgment. Always consult a licensed medical doctor or dermatologist for professional evaluation of any skin condition.
+      </div>
+    </div>
+
+    <!-- Live Viewfinder -->
+    <div class="viewfinder-card">
+      <div class="video-wrapper">
+        <video id="webcam" autoplay playsinline muted></video>
+        <canvas id="snapshotCanvas"></canvas>
+        <div class="reticle" id="reticle"></div>
+        <div class="reticle-label" id="reticleLabel">Align Lesion Inside Reticle</div>
+      </div>
+
+      <div class="controls-row">
+        <button id="startCamBtn">📷 Start Camera</button>
+        <button id="snapBtn" class="secondary" disabled>⚡ Snap & Identify</button>
+        <button id="retakeBtn" class="secondary hidden">🔄 Retake / Resume</button>
+
+        <label class="toggle-label">
+          <input type="checkbox" id="autoSnapToggle" checked>
+          <span>Auto-Snap on Identification (Ding! 🔔)</span>
+        </label>
+      </div>
+
+      <div class="controls-row" style="margin-top: 0.5rem;">
+        <label class="toggle-label" style="text-decoration: underline; cursor: pointer;">
+          <input type="file" id="fileUpload" accept="image/*" style="display: none;">
+          <span>Or upload a saved photo file</span>
+        </label>
+      </div>
+    </div>
+
+    <!-- Identification Result -->
+    <div class="result-card" id="resultCard">
+      <div class="result-header">
+        <div>
+          <div class="result-title" id="resName">Melanocytic Nevus (NV)</div>
+          <div style="font-size: 0.85rem; color: var(--text-muted); margin-top: 2px;" id="resDesc">Common benign mole.</div>
+        </div>
+        <span class="badge" id="resBadge">Benign</span>
+      </div>
+
+      <div style="display: flex; justify-content: space-between; font-size: 0.9rem; font-weight: 600;">
+        <span>Model Probability</span>
+        <span id="resConfidence">94.2%</span>
+      </div>
+      <div class="prob-bar-container">
+        <div class="prob-bar-fill" id="resBar"></div>
+      </div>
+
+      <div style="font-size: 0.85rem; font-weight: 600; margin-top: 0.75rem; color: var(--text-muted);">
+        Class Probabilities (7-Class Task):
+      </div>
+      <div class="class-dist-list" id="resDistList"></div>
+    </div>
+  </div>
+
+  <script>
+    // Audio Ding Synthesizer via Web Audio API (Zero external file dependencies)
+    let audioCtx = null;
+    function playDing() {
+      try {
+        if (!audioCtx) {
+          audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        }
+        if (audioCtx.state === 'suspended') {
+          audioCtx.resume();
+        }
+        const now = audioCtx.currentTime;
+
+        // Two-tone bell harmonic (880 Hz then 1760 Hz with metallic decay)
+        const osc1 = audioCtx.createOscillator();
+        const osc2 = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+
+        osc1.type = "sine";
+        osc1.frequency.setValueAtTime(880, now);
+        osc1.frequency.exponentialRampToValueAtTime(1760, now + 0.1);
+
+        osc2.type = "triangle";
+        osc2.frequency.setValueAtTime(1320, now);
+
+        gain.gain.setValueAtTime(0.3, now);
+        gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.6);
+
+        osc1.connect(gain);
+        osc2.connect(gain);
+        gain.connect(audioCtx.destination);
+
+        osc1.start(now);
+        osc2.start(now);
+        osc1.stop(now + 0.6);
+        osc2.stop(now + 0.6);
+      } catch (e) {
+        console.warn("Audio play failed:", e);
+      }
+    }
+
+    const video = document.getElementById("webcam");
+    const canvas = document.getElementById("snapshotCanvas");
+    const startCamBtn = document.getElementById("startCamBtn");
+    const snapBtn = document.getElementById("snapBtn");
+    const retakeBtn = document.getElementById("retakeBtn");
+    const autoSnapToggle = document.getElementById("autoSnapToggle");
+    const reticle = document.getElementById("reticle");
+    const reticleLabel = document.getElementById("reticleLabel");
+    const fileUpload = document.getElementById("fileUpload");
+
+    const resultCard = document.getElementById("resultCard");
+    const resName = document.getElementById("resName");
+    const resDesc = document.getElementById("resDesc");
+    const resBadge = document.getElementById("resBadge");
+    const resConfidence = document.getElementById("resConfidence");
+    const resBar = document.getElementById("resBar");
+    const resDistList = document.getElementById("resDistList");
+
+    let isScanning = false;
+    let stream = null;
+    let autoScanInterval = null;
+    let isFrozen = false;
+
+    // Start Webcam
+    startCamBtn.addEventListener("click", async () => {
+      try {
+        stream = await navigator.mediaDevices.getUserMedia({
+          video: { facingMode: { ideal: "environment" }, width: { ideal: 640 }, height: { ideal: 640 } }
+        });
+        video.srcObject = stream;
+        video.style.display = "block";
+        canvas.style.display = "none";
+        isFrozen = false;
+
+        startCamBtn.classList.add("hidden");
+        snapBtn.disabled = false;
+        retakeBtn.classList.add("hidden");
+        reticle.classList.remove("hidden");
+        reticleLabel.classList.remove("hidden");
+
+        // Enable Web Audio on user gesture
+        playDing();
+
+        startAutoScanning();
+      } catch (err) {
+        alert("Camera access denied or unavailable: " + err.message);
+      }
+    });
+
+    // Capture current frame as base64 JPEG
+    function captureFrame() {
+      canvas.width = 224;
+      canvas.height = 224;
+      const ctx = canvas.getContext("2d");
+
+      // Crop center square
+      const size = Math.min(video.videoWidth, video.videoHeight);
+      const startX = (video.videoWidth - size) / 2;
+      const startY = (video.videoHeight - size) / 2;
+
+      ctx.drawImage(video, startX, startY, size, size, 0, 0, 224, 224);
+      return canvas.toDataURL("image/jpeg", 0.9);
+    }
+
+    // Freeze snapshot view
+    function freezeSnapshot() {
+      isFrozen = true;
+      stopAutoScanning();
+      video.style.display = "none";
+      canvas.style.display = "block";
+      reticle.classList.add("hidden");
+      reticleLabel.classList.add("hidden");
+      snapBtn.disabled = true;
+      retakeBtn.classList.remove("hidden");
+    }
+
+    // Resume camera live view
+    retakeBtn.addEventListener("click", () => {
+      isFrozen = false;
+      canvas.style.display = "none";
+      video.style.display = "block";
+      reticle.classList.remove("hidden");
+      reticleLabel.classList.remove("hidden");
+      resultCard.style.display = "none";
+      snapBtn.disabled = false;
+      retakeBtn.classList.add("hidden");
+      startAutoScanning();
+    });
+
+    // Send frame to API
+    async function evaluateFrame(isManual = false) {
+      if (!stream || (isFrozen && !isManual)) return;
+
+      const base64Img = captureFrame();
+
+      try {
+        const resp = await fetch("/api/predict", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ image_base64: base64Img })
+        });
+        const data = await resp.json();
+
+        // Check if high confidence or manual trigger
+        if (data.is_significant || isManual) {
+          freezeSnapshot();
+          playDing();
+          displayResult(data);
+        }
+      } catch (e) {
+        console.error("Inference request failed:", e);
+      }
+    }
+
+    function startAutoScanning() {
+      if (autoScanInterval) clearInterval(autoScanInterval);
+      autoScanInterval = setInterval(() => {
+        if (autoSnapToggle.checked && !isFrozen) {
+          evaluateFrame(false);
+        }
+      }, 700);
+    }
+
+    function stopAutoScanning() {
+      if (autoScanInterval) clearInterval(autoScanInterval);
+    }
+
+    snapBtn.addEventListener("click", () => evaluateFrame(true));
+
+    // Display Result in UI
+    function displayResult(data) {
+      resName.textContent = data.name;
+      resDesc.textContent = data.description;
+      resBadge.textContent = data.type;
+      resBadge.style.backgroundColor = data.badge_color;
+      resConfidence.textContent = data.confidence + "%";
+      resBar.style.width = data.confidence + "%";
+      resBar.style.backgroundColor = data.badge_color;
+
+      // Class probabilities distribution
+      resDistList.innerHTML = "";
+      for (const [cls, prob] of Object.entries(data.probabilities)) {
+        const item = document.createElement("div");
+        item.className = "class-dist-item";
+        item.innerHTML = `<span><strong>${cls}</strong></span> <span>${(prob * 100).toFixed(1)}%</span>`;
+        resDistList.appendChild(item);
+      }
+
+      resultCard.style.display = "block";
+    }
+
+    // File upload fallback
+    fileUpload.addEventListener("change", (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = async (event) => {
+        const img = new Image();
+        img.onload = async () => {
+          canvas.width = 224;
+          canvas.height = 224;
+          const ctx = canvas.getContext("2d");
+          ctx.drawImage(img, 0, 0, 224, 224);
+          const base64Data = canvas.toDataURL("image/jpeg", 0.9);
+
+          isFrozen = true;
+          stopAutoScanning();
+          video.style.display = "none";
+          canvas.style.display = "block";
+          reticle.classList.add("hidden");
+          reticleLabel.classList.add("hidden");
+          retakeBtn.classList.remove("hidden");
+
+          try {
+            const resp = await fetch("/api/predict", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ image_base64: base64Data })
+            });
+            const data = await resp.json();
+            playDing();
+            displayResult(data);
+          } catch (err) {
+            alert("Error: " + err.message);
+          }
+        };
+        img.src = event.target.result;
+      };
+      reader.readAsDataURL(file);
+    });
+  </script>
+</body>
+</html>
