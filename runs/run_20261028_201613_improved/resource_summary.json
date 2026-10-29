@@ -1,0 +1,50 @@
+{
+  "fp32_multithread": {
+    "model_file": "mobilenetv3_student_fp32.onnx",
+    "single_thread": false,
+    "num_passes": 200,
+    "cold_latency_ms": 1.646,
+    "mean_latency_ms": 0.904,
+    "p50_latency_ms": 0.838,
+    "p95_latency_ms": 1.296,
+    "throughput_images_per_sec": 1105.73,
+    "peak_ram_mb": 738.95,
+    "model_size_mb": 5.83
+  },
+  "fp32_singlethread": {
+    "model_file": "mobilenetv3_student_fp32.onnx",
+    "single_thread": true,
+    "num_passes": 200,
+    "cold_latency_ms": 1.972,
+    "mean_latency_ms": 1.807,
+    "p50_latency_ms": 1.694,
+    "p95_latency_ms": 2.415,
+    "throughput_images_per_sec": 553.38,
+    "peak_ram_mb": 738.96,
+    "model_size_mb": 5.83
+  },
+  "int8_multithread": {
+    "model_file": "mobilenetv3_student_int8.onnx",
+    "single_thread": false,
+    "num_passes": 200,
+    "cold_latency_ms": 21.78,
+    "mean_latency_ms": 21.918,
+    "p50_latency_ms": 22.15,
+    "p95_latency_ms": 23.548,
+    "throughput_images_per_sec": 45.62,
+    "peak_ram_mb": 739.66,
+    "model_size_mb": 1.62
+  },
+  "int8_singlethread": {
+    "model_file": "mobilenetv3_student_int8.onnx",
+    "single_thread": true,
+    "num_passes": 200,
+    "cold_latency_ms": 30.824,
+    "mean_latency_ms": 29.91,
+    "p50_latency_ms": 29.731,
+    "p95_latency_ms": 32.254,
+    "throughput_images_per_sec": 33.43,
+    "peak_ram_mb": 739.6,
+    "model_size_mb": 1.62
+  }
+}

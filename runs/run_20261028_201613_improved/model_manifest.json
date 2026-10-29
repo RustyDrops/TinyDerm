@@ -1,0 +1,17 @@
+{
+  "pytorch_checkpoint": {
+    "path": "runs\\run_20261028_201613_improved\\models\\mobilenetv3_student_fp32.pt",
+    "size_mb": 5.95,
+    "sha256": "1acfbf10aebce80d4cdc7e1cc7c248d0843908702c0d058e1275081e8d80713a"
+  },
+  "torchscript": {
+    "path": "runs\\run_20261028_201613_improved\\models\\mobilenetv3_student_torchscript.pt",
+    "size_mb": 6.25,
+    "sha256": "08c0c7e9e0d4324a14babdc2decf58cf79b0034cd892c3df26b693ca1b1d0649"
+  },
+  "onnx_fp32": {
+    "path": "runs\\run_20261028_201613_improved\\models\\mobilenetv3_student_fp32.onnx",
+    "size_mb": 5.83,
+    "sha256": "c19518a02d495763cc97a1f1d9227cb1c5dd88f3aae59c73fd3166a89cf03833"
+  }
+}
