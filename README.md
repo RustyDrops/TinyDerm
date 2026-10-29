@@ -9,6 +9,14 @@ Measure how much useful medical-image classification capability can be retained 
 
 ---
 
+### Conceptual Inspiration
+TinyDerm Lab is directly inspired by **[Matt Mastracci](https://x.com/mmastrac)**'s work on **[Hunch](https://github.com/undrgrnd-labs/hunch)** and his **[recent post on X](https://x.com/mmastrac/status/2115505657231384683)**:
+> *"Meet hunch! Jev-like decisions in ~20ms without even needing a GPU, learning live from a teacher model. Built on @GoogleGemma's EmbeddingGemma 2, it can work with any teacher model like @Cloudflare's Clef. Multimodal, w/ a systemone endpoint, slots into your existing stack 🧵"*
+
+TinyDerm explores how that same core philosophy—learning lightweight, repeated decisions from a large teacher model without requiring a cloud GPU—can be applied to medical dermatology imaging, compressing specialist intelligence into a sub-millisecond, CPU-friendly edge student.
+
+---
+
 ### Empirical Research Results (Sealed Holdout Benchmark)
 
 Tested on the sealed 10% holdout (1,006 unseen dermoscopic images across 747 distinct lesions) using MobileNetV3-Small:
@@ -85,8 +93,8 @@ TinyDerm Lab is a standalone research project. It is not a fork of, affiliated w
   Used to export, quantize, and benchmark the deployable CPU and browser models, enabling sub-millisecond local inference and WebAssembly client execution.  
   [https://github.com/microsoft/onnxruntime](https://github.com/microsoft/onnxruntime) (MIT License).
 
-- **Hunch (undrgrnd-labs):**  
-  Conceptual inspiration for distilling repeated specialist decisions into lightweight edge classifiers.  
+- **Hunch (undrgrnd-labs) by Matt Mastracci:**  
+  Primary conceptual inspiration for distilling repeated specialist decisions into lightweight edge classifiers without needing a GPU. Inspired by [Matt Mastracci on X](https://x.com/mmastrac/status/2115505657231384683) ([@mmastrac](https://x.com/mmastrac)).  
   [https://github.com/undrgrnd-labs/hunch](https://github.com/undrgrnd-labs/hunch) (Apache-2.0).
 
 - **EmbeddingGemma 2 (Google DeepMind):**  
