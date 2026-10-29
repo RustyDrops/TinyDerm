@@ -1,0 +1,17 @@
+{
+  "split_hash": "bd4548b6d00c231a517d8ee970eb9ebbbc070c7ec746de0f7f3579d674a72d7a",
+  "holdout_image_count": 1006,
+  "holdout_lesion_count": 747,
+  "class_counts": {
+    "NV": 667,
+    "MEL": 117,
+    "BKL": 110,
+    "BCC": 54,
+    "AKIEC": 32,
+    "VASC": 14,
+    "DF": 12
+  },
+  "created_at": "2026-10-28T23:04:30.690069+00:00",
+  "consumed": false,
+  "seed_used": 42
+}

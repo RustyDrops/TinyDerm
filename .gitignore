@@ -1,0 +1,29 @@
+# Environments
+.venv/
+env/
+venv/
+ENV/
+
+# Python cache
+__pycache__/
+*.py[cod]
+*$py.class
+*.pytest_cache/
+
+# Dataset raw images and archives (very large binary files)
+data/raw/isic2018/images/
+data/raw/isic2018/*.zip
+data/raw/isic2018/*.part
+data/raw/*.zip
+data/raw/*.part
+
+# Model binaries & checkpoints in runs
+runs/**/*.pt
+runs/**/*.onnx
+# SQLite databases
+*.sqlite
+*.sqlite-journal
+
+# OS files
+.DS_Store
+Thumbs.db

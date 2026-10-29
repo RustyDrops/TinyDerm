@@ -1,0 +1,55 @@
+seed: 42
+
+dataset:
+  name: "isic2018"
+  collection_id: 66
+  raw_dir: "data/raw/isic2018"
+  splits_dir: "data/splits"
+  classes:
+    - "MEL"
+    - "NV"
+    - "BCC"
+    - "AKIEC"
+    - "BKL"
+    - "DF"
+    - "VASC"
+  expected_images: 10015
+  image_size: 224
+  acquisition_order:
+    - "isic_cli"
+    - "isic_api"
+    - "challenge_archive"
+
+model:
+  name: "mobilenetv3_small_100"
+  pretrained: true
+  image_size: 224
+  classes: 7
+
+training:
+  head_epochs: 3
+  finetune_max_epochs: 20
+  early_stopping_patience: 5
+  optimizer: "adamw"
+  head_lr: 0.001
+  backbone_lr: 0.0001
+  weight_decay: 0.01
+  batch_size: 64
+  num_workers: 2
+  imbalance_handling: "class_weighted_ce"
+
+retraining:
+  head_epochs: 3
+  epochs: 15
+
+evaluation:
+  headline_metric: "macro_f1"
+
+benchmarking:
+  num_warmup: 20
+  num_passes: 200
+  batch_size: 1
+
+portal:
+  host: "127.0.0.1"
+  port: 8501

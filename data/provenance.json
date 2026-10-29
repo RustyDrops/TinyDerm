@@ -1,0 +1,27 @@
+{
+  "dataset_name": "ISIC 2018 Task 3 / HAM10000",
+  "source": "isic_api_collection_66",
+  "collection_id": 66,
+  "download_timestamp": "2026-10-28T23:04:23.821444+00:00",
+  "file_count": 10015,
+  "license": "CC-BY-NC research dataset (ISIC / HAM10000)",
+  "metadata_files_used": [
+    "metadata.csv"
+  ],
+  "metadata_hashes": {
+    "metadata.csv": "7bc83cb3b18455311858dc524eb9863134ca4d993186d1d25886bebaa2687306"
+  },
+  "provenance_version": "1.0",
+  "notes": "ISIC 2018 Challenge Task 3 official training set. Seven diagnostic categories: MEL, NV, BCC, AKIEC, BKL, DF, VASC.",
+  "classes": [
+    "MEL",
+    "NV",
+    "BCC",
+    "AKIEC",
+    "BKL",
+    "DF",
+    "VASC"
+  ],
+  "unique_lesions": 7470,
+  "total_records": 10015
+}
