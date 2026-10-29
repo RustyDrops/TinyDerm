@@ -1,0 +1,8 @@
+[client]
+# Hides the Streamlit Community Cloud "Deploy" button, developer menus, and cache clearing
+toolbarMode = "viewer"
+
+[server]
+headless = true
+enableCORS = false
+enableXsrfProtection = false

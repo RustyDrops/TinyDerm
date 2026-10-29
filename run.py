@@ -1,13 +1,4 @@
-"""Launcher script for TinyDerm Lab.
-
-Autonomous startup:
-1. Initialize experiment database
-2. Launch Streamlit portal subprocess on 127.0.0.1:8501
-3. Wait until portal is responsive
-4. Open default web browser
-5. Start pipeline worker
-6. Monitor execution and leave portal running upon completion
-"""
+"""Launcher script for TinyDerm Lab (Clean Autonomous Retraining)."""
 
 import logging
 import os
@@ -68,6 +59,8 @@ def main():
         str(PORTAL_PORT),
         "--server.headless",
         "true",
+        "--client.toolbarMode",
+        "viewer",
         "--browser.serverAddress",
         PORTAL_HOST,
     ]
@@ -94,15 +87,9 @@ def main():
         except Exception as e:
             logger.warning(f"Could not open browser automatically: {e}")
 
-        # Step 5: Start pipeline worker
-        logger.info("Starting autonomous pipeline execution...")
-        latest_run = db.get_latest_run()
-        run_id = None
-        if latest_run and latest_run.get("status") in ["FAILED", "RUNNING"]:
-            run_id = latest_run["run_id"]
-            logger.info(f"Resuming existing experiment run: {run_id}")
-
-        pipeline = TinyDermPipeline(config_path="config/default.yaml", db_path=db_path, run_id=run_id)
+        # Step 5: Start clean training pipeline worker
+        logger.info("Starting autonomous clean training pipeline execution...")
+        pipeline = TinyDermPipeline(config_path="config/default.yaml", db_path=db_path, force_clean=True)
         pipeline.run()
 
         logger.info("Pipeline execution finished. Portal remains active. Press Ctrl+C to stop.")
