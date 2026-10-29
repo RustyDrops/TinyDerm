@@ -18,6 +18,7 @@ from tinyderm.benchmark import run_full_cpu_benchmark
 from tinyderm.evaluate import run_sealed_holdout_evaluation
 from tinyderm.experiment_db import ExperimentDB
 from tinyderm.export import export_model_artifacts
+from tinyderm.model import TinyDermModel
 from tinyderm.provenance import compute_file_hash
 from tinyderm.quantize import quantize_onnx_model
 from tinyderm.resources import ResourceMonitor, detect_hardware
@@ -102,35 +103,47 @@ class TinyDermPipeline:
                 f.write(lock_data.get("split_hash", "") + "\n")
 
             # 5. TRAINING_HEAD & FINETUNING (Development Validation Recipe)
-            self.set_stage("TRAINING_HEAD")
             device = get_device()
-            model, dev_metrics = train_student_model(
-                manifest_df=manifest_df,
-                config=self.config,
-                db=self.db,
-                run_id=self.run_id,
-                output_dir="runs",
-                retrain_on_dev=False,
-                progress_callback=lambda stage, ep, total, m: self.set_stage(stage),
-                throughput_callback=lambda tp: self.resource_monitor.set_throughput(tp),
-            )
+            models_dir = output_dir / "models"
+            retrain_ckpt = models_dir / "best_retrained_model.pt"
 
-            # 6. SELECTING_MODEL
-            self.set_stage("SELECTING_MODEL")
-            logger.info(f"Model selection complete. Validation Macro F1: {dev_metrics.get('macro_f1', 0.0):.4f}")
+            if retrain_ckpt.exists():
+                logger.info(f"Reusing existing trained model checkpoint: {retrain_ckpt}")
+                final_model = TinyDermModel(
+                    model_name=self.config.get("model", {}).get("name", "mobilenetv3_small_100"),
+                    pretrained=False,
+                    num_classes=7,
+                ).to(device)
+                final_model.load_state_dict(torch.load(retrain_ckpt, map_location=device, weights_only=True))
+            else:
+                self.set_stage("TRAINING_HEAD")
+                model, dev_metrics = train_student_model(
+                    manifest_df=manifest_df,
+                    config=self.config,
+                    db=self.db,
+                    run_id=self.run_id,
+                    output_dir="runs",
+                    retrain_on_dev=False,
+                    progress_callback=lambda stage, ep, total, m: self.set_stage(stage),
+                    throughput_callback=lambda tp: self.resource_monitor.set_throughput(tp),
+                )
 
-            # 7. RETRAINING_90_PERCENT
-            self.set_stage("RETRAINING_90_PERCENT")
-            final_model, retrain_metrics = train_student_model(
-                manifest_df=manifest_df,
-                config=self.config,
-                db=self.db,
-                run_id=self.run_id,
-                output_dir="runs",
-                retrain_on_dev=True,
-                progress_callback=lambda stage, ep, total, m: self.set_stage(stage),
-                throughput_callback=lambda tp: self.resource_monitor.set_throughput(tp),
-            )
+                # 6. SELECTING_MODEL
+                self.set_stage("SELECTING_MODEL")
+                logger.info(f"Model selection complete. Validation Macro F1: {dev_metrics.get('macro_f1', 0.0):.4f}")
+
+                # 7. RETRAINING_90_PERCENT
+                self.set_stage("RETRAINING_90_PERCENT")
+                final_model, retrain_metrics = train_student_model(
+                    manifest_df=manifest_df,
+                    config=self.config,
+                    db=self.db,
+                    run_id=self.run_id,
+                    output_dir="runs",
+                    retrain_on_dev=True,
+                    progress_callback=lambda stage, ep, total, m: self.set_stage(stage),
+                    throughput_callback=lambda tp: self.resource_monitor.set_throughput(tp),
+                )
 
             # 8. EXPORTING
             self.set_stage("EXPORTING")

@@ -7,7 +7,7 @@
   "torchscript": {
     "path": "runs\\run_20261028_175715\\models\\mobilenetv3_student_torchscript.pt",
     "size_mb": 6.25,
-    "sha256": "0e1a638eec56bf6fdc2ec38f04e050fc17eb9a3eac64dc5d3b7a6bdd907fa543"
+    "sha256": "e1508e4db6fa73d4e31bfd79ad7232c78e8088c76b3c009b59264c14d2392511"
   },
   "onnx_fp32": {
     "path": "runs\\run_20261028_175715\\models\\mobilenetv3_student_fp32.onnx",

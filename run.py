@@ -96,7 +96,13 @@ def main():
 
         # Step 5: Start pipeline worker
         logger.info("Starting autonomous pipeline execution...")
-        pipeline = TinyDermPipeline(config_path="config/default.yaml", db_path=db_path)
+        latest_run = db.get_latest_run()
+        run_id = None
+        if latest_run and latest_run.get("status") in ["FAILED", "RUNNING"]:
+            run_id = latest_run["run_id"]
+            logger.info(f"Resuming existing experiment run: {run_id}")
+
+        pipeline = TinyDermPipeline(config_path="config/default.yaml", db_path=db_path, run_id=run_id)
         pipeline.run()
 
         logger.info("Pipeline execution finished. Portal remains active. Press Ctrl+C to stop.")
