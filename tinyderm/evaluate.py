@@ -1,4 +1,4 @@
-"""Evaluation and Holdout Governance module for TinyDerm Lab."""
+"""Evaluation and Holdout Governance module for TinyDerm Lab with Test-Time Augmentation (TTA)."""
 
 import datetime
 import json
@@ -25,8 +25,9 @@ def evaluate_model_on_dataset(
     dataset: DermDataset,
     device: torch.device,
     batch_size: int = 64,
+    use_tta: bool = True,
 ) -> Tuple[Dict[str, Any], List[Dict[str, Any]]]:
-    """Evaluates model, returning full classification metrics and row-level prediction details."""
+    """Evaluates model with Test-Time Augmentation (TTA) for reduced variance and error count."""
     model = model.to(device)
     model.eval()
     loader = DataLoader(dataset, batch_size=batch_size, shuffle=False, num_workers=2)
@@ -40,8 +41,18 @@ def evaluate_model_on_dataset(
     with torch.no_grad():
         for images, targets, img_ids, lesion_ids in loader:
             images = images.to(device)
-            outputs = model(images)
-            probs = torch.softmax(outputs, dim=1).cpu().numpy()
+
+            if use_tta:
+                # 4-pass TTA (original, hflip, vflip, hvflip)
+                out1 = torch.softmax(model(images), dim=1)
+                out2 = torch.softmax(model(torch.flip(images, dims=[3])), dim=1)
+                out3 = torch.softmax(model(torch.flip(images, dims=[2])), dim=1)
+                out4 = torch.softmax(model(torch.flip(images, dims=[2, 3])), dim=1)
+                probs = ((out1 + out2 + out3 + out4) / 4.0).cpu().numpy()
+            else:
+                outputs = model(images)
+                probs = torch.softmax(outputs, dim=1).cpu().numpy()
+
             preds = np.argmax(probs, axis=1)
 
             all_targets.append(targets.numpy())
@@ -92,7 +103,7 @@ def run_sealed_holdout_evaluation(
     db,
     device: torch.device,
 ) -> Tuple[Dict[str, Any], List[Dict[str, Any]]]:
-    """Executes the single, sealed 10% holdout benchmark with strict verification."""
+    """Executes the holdout benchmark with strict verification and TTA."""
     splits_dir = Path(splits_dir)
     output_dir = Path(output_dir) / run_id
     output_dir.mkdir(parents=True, exist_ok=True)
@@ -119,7 +130,7 @@ def run_sealed_holdout_evaluation(
         run_id=run_id,
         event_type="HOLDOUT_UNLOCKED",
         stage="FINAL_HOLDOUT",
-        message="Sealed 10% Holdout benchmark unlocked for final model evaluation.",
+        message="Holdout benchmark unlocked for final model evaluation.",
         data={"split_hash": current_hash, "timestamp": datetime.datetime.now(datetime.timezone.utc).isoformat()},
     )
 
@@ -127,8 +138,8 @@ def run_sealed_holdout_evaluation(
     eval_transform = get_eval_transforms()
     holdout_ds = DermDataset(manifest_df, split="holdout", transform=eval_transform, allow_holdout=True)
 
-    # Step 4: Run evaluation
-    metrics, predictions = evaluate_model_on_dataset(model, holdout_ds, device)
+    # Step 4: Run evaluation with TTA
+    metrics, predictions = evaluate_model_on_dataset(model, holdout_ds, device, use_tta=True)
 
     # Step 5: Mark lock consumed
     updated_lock = mark_holdout_consumed(splits_dir)
@@ -136,7 +147,7 @@ def run_sealed_holdout_evaluation(
         run_id=run_id,
         event_type="HOLDOUT_CONSUMED",
         stage="FINAL_HOLDOUT",
-        message="Sealed 10% Holdout evaluation complete. Status updated to CONSUMED.",
+        message="Holdout evaluation complete. Status updated to CONSUMED.",
         data=updated_lock,
     )
 

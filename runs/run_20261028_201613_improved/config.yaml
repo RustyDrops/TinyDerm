@@ -1,0 +1,48 @@
+benchmarking:
+  batch_size: 1
+  num_passes: 200
+  num_warmup: 20
+dataset:
+  acquisition_order:
+  - isic_cli
+  - isic_api
+  - challenge_archive
+  classes:
+  - MEL
+  - NV
+  - BCC
+  - AKIEC
+  - BKL
+  - DF
+  - VASC
+  collection_id: 66
+  expected_images: 10015
+  image_size: 224
+  name: isic2018
+  raw_dir: data/raw/isic2018
+  splits_dir: data/splits
+evaluation:
+  headline_metric: macro_f1
+model:
+  classes: 7
+  image_size: 224
+  name: mobilenetv3_small_100
+  pretrained: true
+portal:
+  host: 127.0.0.1
+  port: 8501
+retraining:
+  epochs: 18
+  head_epochs: 4
+seed: 42
+training:
+  backbone_lr: 0.00015
+  batch_size: 64
+  early_stopping_patience: 6
+  finetune_max_epochs: 22
+  head_epochs: 4
+  head_lr: 0.001
+  imbalance_handling: focal_loss_smoothed
+  num_workers: 2
+  optimizer: adamw
+  weight_decay: 0.01

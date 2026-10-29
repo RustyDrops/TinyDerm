@@ -27,20 +27,20 @@ model:
   classes: 7
 
 training:
-  head_epochs: 3
-  finetune_max_epochs: 20
-  early_stopping_patience: 5
+  head_epochs: 4
+  finetune_max_epochs: 22
+  early_stopping_patience: 6
   optimizer: "adamw"
   head_lr: 0.001
-  backbone_lr: 0.0001
+  backbone_lr: 0.00015
   weight_decay: 0.01
   batch_size: 64
   num_workers: 2
-  imbalance_handling: "class_weighted_ce"
+  imbalance_handling: "focal_loss_smoothed"
 
 retraining:
-  head_epochs: 3
-  epochs: 15
+  head_epochs: 4
+  epochs: 18
 
 evaluation:
   headline_metric: "macro_f1"

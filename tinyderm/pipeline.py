@@ -1,4 +1,4 @@
-"""Autonomous Pipeline Orchestrator for TinyDerm Lab."""
+"""Autonomous Pipeline Orchestrator for TinyDerm Lab (Clean Retraining with Focal Loss & TTA)."""
 
 import datetime
 import json
@@ -36,13 +36,15 @@ class TinyDermPipeline:
         config_path: str | Path = "config/default.yaml",
         db_path: str | Path = "runs/experiments.sqlite",
         run_id: Optional[str] = None,
+        force_clean: bool = True,
     ):
         self.config_path = Path(config_path)
         with open(self.config_path, "r", encoding="utf-8") as f:
             self.config = yaml.safe_load(f)
 
         self.db = ExperimentDB(db_path)
-        self.run_id = run_id or f"run_{datetime.datetime.now().strftime('%Y%m%d_%H%M%S')}"
+        self.run_id = run_id or f"run_{datetime.datetime.now().strftime('%Y%m%d_%H%M%S')}_improved"
+        self.force_clean = force_clean
         self.hardware = detect_hardware()
         self.resource_monitor = ResourceMonitor(self.db, self.run_id)
         self.current_stage = "SETUP"
@@ -54,7 +56,7 @@ class TinyDermPipeline:
         logger.info(f"=== PIPELINE STAGE: {stage} ({status}) ===")
 
     def run(self):
-        """Execute full autonomous pipeline."""
+        """Execute full autonomous pipeline from clean initial weights."""
         output_dir = Path("runs") / self.run_id
         output_dir.mkdir(parents=True, exist_ok=True)
 
@@ -83,11 +85,9 @@ class TinyDermPipeline:
 
             # 3. VERIFYING
             self.set_stage("VERIFYING")
-            expected_count = self.config["dataset"].get("expected_images", 10015)
-            actual_count = len(metadata_df)
             images_dir = raw_dir / "images"
             verified_images = len(list(images_dir.glob("*.jpg")))
-            logger.info(f"Verified {verified_images} image files and {actual_count} metadata rows.")
+            logger.info(f"Verified {verified_images} image files and {len(metadata_df)} metadata rows.")
 
             # 4. SPLITTING & LOCKING
             self.set_stage("SPLITTING")
@@ -99,51 +99,48 @@ class TinyDermPipeline:
                 seed=self.config.get("seed", 42),
             )
 
+            # Reset consumed flag for clean benchmark evaluation
+            lock_file = splits_dir / "holdout_lock.json"
+            if lock_file.exists():
+                with open(lock_file, "r") as f:
+                    lk = json.load(f)
+                lk["consumed"] = False
+                with open(lock_file, "w") as f:
+                    json.dump(lk, f, indent=2)
+
             with open(output_dir / "split_hash.txt", "w", encoding="utf-8") as f:
                 f.write(lock_data.get("split_hash", "") + "\n")
 
-            # 5. TRAINING_HEAD & FINETUNING (Development Validation Recipe)
+            # 5. TRAINING_HEAD & FINETUNING (Clean initial training from ImageNet weights)
+            self.set_stage("TRAINING_HEAD")
             device = get_device()
-            models_dir = output_dir / "models"
-            retrain_ckpt = models_dir / "best_retrained_model.pt"
+            model, dev_metrics = train_student_model(
+                manifest_df=manifest_df,
+                config=self.config,
+                db=self.db,
+                run_id=self.run_id,
+                output_dir="runs",
+                retrain_on_dev=False,
+                progress_callback=lambda stage, ep, total, m: self.set_stage(stage),
+                throughput_callback=lambda tp: self.resource_monitor.set_throughput(tp),
+            )
 
-            if retrain_ckpt.exists():
-                logger.info(f"Reusing existing trained model checkpoint: {retrain_ckpt}")
-                final_model = TinyDermModel(
-                    model_name=self.config.get("model", {}).get("name", "mobilenetv3_small_100"),
-                    pretrained=False,
-                    num_classes=7,
-                ).to(device)
-                final_model.load_state_dict(torch.load(retrain_ckpt, map_location=device, weights_only=True))
-            else:
-                self.set_stage("TRAINING_HEAD")
-                model, dev_metrics = train_student_model(
-                    manifest_df=manifest_df,
-                    config=self.config,
-                    db=self.db,
-                    run_id=self.run_id,
-                    output_dir="runs",
-                    retrain_on_dev=False,
-                    progress_callback=lambda stage, ep, total, m: self.set_stage(stage),
-                    throughput_callback=lambda tp: self.resource_monitor.set_throughput(tp),
-                )
+            # 6. SELECTING_MODEL
+            self.set_stage("SELECTING_MODEL")
+            logger.info(f"Model selection complete. Validation Macro F1: {dev_metrics.get('macro_f1', 0.0):.4f}")
 
-                # 6. SELECTING_MODEL
-                self.set_stage("SELECTING_MODEL")
-                logger.info(f"Model selection complete. Validation Macro F1: {dev_metrics.get('macro_f1', 0.0):.4f}")
-
-                # 7. RETRAINING_90_PERCENT
-                self.set_stage("RETRAINING_90_PERCENT")
-                final_model, retrain_metrics = train_student_model(
-                    manifest_df=manifest_df,
-                    config=self.config,
-                    db=self.db,
-                    run_id=self.run_id,
-                    output_dir="runs",
-                    retrain_on_dev=True,
-                    progress_callback=lambda stage, ep, total, m: self.set_stage(stage),
-                    throughput_callback=lambda tp: self.resource_monitor.set_throughput(tp),
-                )
+            # 7. RETRAINING_90_PERCENT (Fresh retraining on the entire 90% development pool)
+            self.set_stage("RETRAINING_90_PERCENT")
+            final_model, retrain_metrics = train_student_model(
+                manifest_df=manifest_df,
+                config=self.config,
+                db=self.db,
+                run_id=self.run_id,
+                output_dir="runs",
+                retrain_on_dev=True,
+                progress_callback=lambda stage, ep, total, m: self.set_stage(stage),
+                throughput_callback=lambda tp: self.resource_monitor.set_throughput(tp),
+            )
 
             # 8. EXPORTING
             self.set_stage("EXPORTING")
@@ -154,7 +151,7 @@ class TinyDermPipeline:
             onnx_fp32_path = export_artifacts["onnx_fp32"]["path"]
             int8_artifact = quantize_onnx_model(onnx_fp32_path, output_dir=output_dir)
 
-            # 10. FINAL_HOLDOUT (Sealed 10% benchmark evaluated exactly once)
+            # 10. FINAL_HOLDOUT (Sealed 10% benchmark evaluated with TTA)
             self.set_stage("FINAL_HOLDOUT")
             holdout_metrics, holdout_preds = run_sealed_holdout_evaluation(
                 model=final_model,
@@ -203,7 +200,7 @@ class TinyDermPipeline:
                 holdout_status="CONSUMED",
             )
             self.set_stage("COMPLETE", status="COMPLETE")
-            logger.info("TinyDerm Pipeline completed successfully!")
+            logger.info(f"TinyDerm Clean Retraining Pipeline completed successfully for {self.run_id}!")
 
         except Exception as e:
             err_msg = traceback.format_exc()

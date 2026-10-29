@@ -1,4 +1,4 @@
-"""Two-stage training loop for TinyDerm Lab."""
+"""Enhanced two-stage training loop with Focal Loss and Label Smoothing for TinyDerm Lab."""
 
 import copy
 import logging
@@ -20,6 +20,28 @@ from tinyderm.metrics import compute_classification_metrics
 from tinyderm.model import TinyDermModel
 
 logger = logging.getLogger(__name__)
+
+
+class FocalLoss(nn.Module):
+    """Focal Loss with label smoothing to heavily penalize hard/minority errors."""
+
+    def __init__(self, weight: Optional[torch.Tensor] = None, gamma: float = 1.5, label_smoothing: float = 0.05):
+        super().__init__()
+        self.weight = weight
+        self.gamma = gamma
+        self.label_smoothing = label_smoothing
+
+    def forward(self, inputs: torch.Tensor, targets: torch.Tensor) -> torch.Tensor:
+        ce_loss = nn.functional.cross_entropy(
+            inputs,
+            targets,
+            weight=self.weight,
+            label_smoothing=self.label_smoothing,
+            reduction="none",
+        )
+        pt = torch.exp(-ce_loss)
+        focal_loss = ((1.0 - pt) ** self.gamma) * ce_loss
+        return focal_loss.mean()
 
 
 def get_device() -> torch.device:
@@ -101,7 +123,7 @@ def train_student_model(
     progress_callback: Optional[Callable[[str, int, int, Dict[str, float]], None]] = None,
     throughput_callback: Optional[Callable[[float], None]] = None,
 ) -> Tuple[TinyDermModel, Dict[str, Any]]:
-    """Two-stage training (head freezing + full fine-tuning) with early stopping."""
+    """Enhanced two-stage training with Focal Loss and cosine schedule."""
     output_dir = Path(output_dir) / run_id
     models_dir = output_dir / "models"
     models_dir.mkdir(parents=True, exist_ok=True)
@@ -124,11 +146,10 @@ def train_student_model(
         train_ds = DermDataset(manifest_df, split="train", transform=train_transform)
         val_ds = DermDataset(manifest_df, split="val", transform=eval_transform)
 
-    # Class-weighted loss derived strictly from training data
+    # Smoothed class-weighted Focal Loss
     class_weights = train_ds.get_class_weights().to(device)
-    criterion = nn.CrossEntropyLoss(weight=class_weights)
+    criterion = FocalLoss(weight=class_weights, gamma=1.5, label_smoothing=0.05)
 
-    # Batch loader with OOM protection loop
     def make_loaders(bs: int):
         t_loader = DataLoader(train_ds, batch_size=bs, shuffle=True, num_workers=num_workers, pin_memory=(device.type == "cuda"))
         v_loader = DataLoader(val_ds, batch_size=bs, shuffle=False, num_workers=num_workers, pin_memory=(device.type == "cuda"))
@@ -136,7 +157,7 @@ def train_student_model(
 
     train_loader, val_loader = make_loaders(batch_size)
 
-    # Initialize model
+    # Initialize model from scratch ImageNet weights
     model = TinyDermModel(
         model_name=config.get("model", {}).get("name", "mobilenetv3_small_100"),
         pretrained=config.get("model", {}).get("pretrained", True),
@@ -146,13 +167,13 @@ def train_student_model(
     best_val_f1 = -1.0
     best_model_weights = None
     best_metrics = {}
-    patience = train_cfg.get("early_stopping_patience", 5)
+    patience = train_cfg.get("early_stopping_patience", 6)
     patience_counter = 0
 
     # -------------------------------------------------------------
     # STAGE 1: Train classification head only
     # -------------------------------------------------------------
-    head_epochs = train_cfg.get("head_epochs", 3)
+    head_epochs = train_cfg.get("head_epochs", 4)
     if head_epochs > 0:
         model.freeze_backbone()
         optimizer_head = AdamW(
@@ -213,10 +234,10 @@ def train_student_model(
     # STAGE 2: Fine-tune complete network
     # -------------------------------------------------------------
     model.unfreeze_backbone()
-    finetune_epochs = train_cfg.get("finetune_max_epochs", 20)
+    finetune_epochs = train_cfg.get("finetune_max_epochs", 22)
     optimizer_full = AdamW(
         [
-            {"params": [p for n, p in model.model.named_parameters() if "classifier" not in n], "lr": train_cfg.get("backbone_lr", 1e-4)},
+            {"params": [p for n, p in model.model.named_parameters() if "classifier" not in n], "lr": train_cfg.get("backbone_lr", 1.5e-4)},
             {"params": [p for n, p in model.model.named_parameters() if "classifier" in n], "lr": train_cfg.get("head_lr", 1e-3)},
         ],
         weight_decay=train_cfg.get("weight_decay", 0.01),
@@ -269,13 +290,11 @@ def train_student_model(
                 {"val_f1": v_metrics["macro_f1"], "train_loss": t_loss, "val_loss": v_loss},
             )
 
-        # Early stopping check on validation macro_f1
         if v_metrics["macro_f1"] > best_val_f1:
             best_val_f1 = v_metrics["macro_f1"]
             best_model_weights = copy.deepcopy(model.state_dict())
             best_metrics = v_metrics
             patience_counter = 0
-            # Save best checkpoint
             ckpt_name = "best_retrained_model.pt" if retrain_on_dev else "best_dev_model.pt"
             torch.save(best_model_weights, models_dir / ckpt_name)
         else:

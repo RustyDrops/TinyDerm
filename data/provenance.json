@@ -2,7 +2,7 @@
   "dataset_name": "ISIC 2018 Task 3 / HAM10000",
   "source": "official_isic_cli_and_challenge_archive",
   "collection_id": 66,
-  "download_timestamp": "2026-10-29T00:59:00.318709+00:00",
+  "download_timestamp": "2026-10-29T01:16:13.660306+00:00",
   "file_count": 10015,
   "license": "CC-BY-NC research dataset (ISIC / HAM10000)",
   "metadata_files_used": [

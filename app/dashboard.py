@@ -24,12 +24,15 @@ OFFICIAL_CLASSES = ["MEL", "NV", "BCC", "AKIEC", "BKL", "DF", "VASC"]
 st.title("🔬 TinyDerm Lab — Autonomous Compression Portal")
 st.caption("Local Medical-Image Compression Research Prototype | ISIC 2018 / HAM10000")
 
-# Fetch latest run
-latest_run = db.get_latest_run()
-
-if not latest_run:
+# Fetch runs
+all_runs = db.get_all_runs()
+if not all_runs:
     st.info("Pipeline initializing... Waiting for first experiment run to register.")
     st.stop()
+
+run_ids = [r["run_id"] for r in all_runs]
+selected_run_id = st.sidebar.selectbox("Select Experiment Run", run_ids, index=0)
+latest_run = next((r for r in all_runs if r["run_id"] == selected_run_id), all_runs[0])
 
 run_id = latest_run["run_id"]
 stage = latest_run.get("stage", "UNKNOWN")

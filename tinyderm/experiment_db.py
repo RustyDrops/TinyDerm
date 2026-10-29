@@ -370,6 +370,19 @@ class ExperimentDB:
             row = cursor.fetchone()
             return dict(row) if row else None
 
+    def get_all_runs(self) -> List[Dict[str, Any]]:
+        with self._lock, self._get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute("SELECT * FROM runs ORDER BY start_time DESC")
+            return [dict(r) for r in cursor.fetchall()]
+
+    def get_run_by_id(self, run_id: str) -> Optional[Dict[str, Any]]:
+        with self._lock, self._get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute("SELECT * FROM runs WHERE run_id = ?", (run_id,))
+            row = cursor.fetchone()
+            return dict(row) if row else None
+
     def get_epochs(self, run_id: str) -> List[Dict[str, Any]]:
         with self._lock, self._get_connection() as conn:
             cursor = conn.cursor()

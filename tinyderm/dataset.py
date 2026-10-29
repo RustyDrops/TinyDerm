@@ -68,14 +68,18 @@ class DermDataset(Dataset):
         return self.df["class_label"].value_counts().to_dict()
 
     def get_class_weights(self) -> torch.Tensor:
-        """Calculate inverse-frequency class weights for cross-entropy loss."""
+        """Calculate smoothed inverse-frequency class weights for focal loss."""
         counts = [self.df[self.df["class_label"] == c].shape[0] for c in OFFICIAL_CLASSES]
         total = sum(counts)
         num_classes = len(OFFICIAL_CLASSES)
         weights = []
         for count in counts:
             if count > 0:
-                weights.append(total / (num_classes * count))
+                # Square root smoothed inverse frequency
+                w = (total / (count * num_classes)) ** 0.5
+                weights.append(w)
             else:
                 weights.append(1.0)
-        return torch.tensor(weights, dtype=torch.float32)
+        weights_t = torch.tensor(weights, dtype=torch.float32)
+        # Normalize so mean is 1.0
+        return weights_t / weights_t.mean()
