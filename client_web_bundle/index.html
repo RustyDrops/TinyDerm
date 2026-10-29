@@ -2,14 +2,15 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>TinyDerm Vision — Client-Side Lesion Scanner</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>TinyDerm Vision — In-Browser Lesion Scanner</title>
   <!-- ONNX Runtime Web for 100% Client-Side In-Browser AI -->
   <script src="https://cdn.jsdelivr.net/npm/onnxruntime-web@1.21.0/dist/ort.min.js"></script>
   <style>
     :root {
-      --bg: #0f172a;
-      --card-bg: #1e293b;
+      --bg: #090d16;
+      --card-bg: #131b2e;
+      --card-border: #23304c;
       --primary: #38bdf8;
       --primary-hover: #0284c7;
       --accent: #10b981;
@@ -17,54 +18,93 @@
       --danger: #ef4444;
       --text: #f8fafc;
       --text-muted: #94a3b8;
-      --border: #334155;
     }
 
-    * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
-    body { background-color: var(--bg); color: var(--text); padding: 1.25rem 1rem; min-height: 100vh; display: flex; flex-direction: column; align-items: center; }
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; -webkit-tap-highlight-color: transparent; }
+    body { background-color: var(--bg); color: var(--text); padding: 0.75rem; min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: flex-start; }
 
-    .container { width: 100%; max-width: 650px; display: flex; flex-direction: column; gap: 1rem; }
+    .container { width: 100%; max-width: 520px; display: flex; flex-direction: column; gap: 0.75rem; }
 
-    header { text-align: center; }
-    header h1 { font-size: 1.6rem; font-weight: 800; color: #fff; display: flex; align-items: center; justify-content: center; gap: 0.5rem; }
-    header p { color: var(--text-muted); font-size: 0.88rem; margin-top: 0.2rem; }
+    header { text-align: center; margin-top: 0.25rem; }
+    header h1 { font-size: 1.4rem; font-weight: 800; color: #fff; display: flex; align-items: center; justify-content: center; gap: 0.4rem; }
+    header p { color: var(--text-muted); font-size: 0.8rem; margin-top: 2px; }
 
-    /* Mandatory Medical Disclaimer Banner */
-    .disclaimer-box {
-      background: rgba(245, 158, 11, 0.12);
-      border: 1px solid var(--warning);
-      border-radius: 8px;
-      padding: 0.75rem 1rem;
-      font-size: 0.82rem;
-      line-height: 1.4;
-      color: #fef3c7;
-      display: flex;
-      align-items: flex-start;
-      gap: 0.65rem;
-    }
-    .disclaimer-icon { font-size: 1.25rem; line-height: 1; flex-shrink: 0; }
-
-    /* Loading / Model Status */
-    .status-badge {
-      background: #0f172a;
-      border: 1px solid var(--border);
-      padding: 0.4rem 0.8rem;
-      border-radius: 20px;
-      font-size: 0.8rem;
-      text-align: center;
-      color: var(--primary);
+    /* Modal Disclaimer Popup */
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.82);
+      backdrop-filter: blur(6px);
+      z-index: 9999;
       display: flex;
       align-items: center;
       justify-content: center;
-      gap: 0.4rem;
+      padding: 1rem;
+      animation: fadeIn 0.25s ease-out;
+    }
+    .modal-content {
+      background: #1e293b;
+      border: 1px solid var(--warning);
+      border-radius: 16px;
+      padding: 1.5rem;
+      max-width: 440px;
+      width: 100%;
+      text-align: center;
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.6);
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+    }
+    .modal-icon {
+      font-size: 2.5rem;
+      line-height: 1;
+    }
+    .modal-title {
+      font-size: 1.25rem;
+      font-weight: 800;
+      color: #fff;
+    }
+    .modal-text {
+      font-size: 0.88rem;
+      line-height: 1.5;
+      color: #cbd5e1;
+      text-align: left;
+      background: rgba(15, 23, 42, 0.6);
+      padding: 0.9rem;
+      border-radius: 10px;
+      border: 1px solid rgba(245, 158, 11, 0.25);
+    }
+    .modal-btn {
+      background: var(--warning);
+      color: #000;
+      font-weight: 800;
+      font-size: 1rem;
+      padding: 0.75rem 1.5rem;
+      border-radius: 10px;
+      border: none;
+      cursor: pointer;
+      transition: transform 0.1s, background 0.2s;
+    }
+    .modal-btn:hover { background: #d97706; }
+    .modal-btn:active { transform: scale(0.98); }
+
+    /* Model Status Badge */
+    .status-badge {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      padding: 0.35rem 0.75rem;
+      border-radius: 20px;
+      font-size: 0.75rem;
+      text-align: center;
+      color: var(--primary);
     }
 
-    /* Camera Viewport */
+    /* Camera Viewfinder Card */
     .viewfinder-card {
       background: var(--card-bg);
-      border: 1px solid var(--border);
-      border-radius: 14px;
-      padding: 1rem;
+      border: 1px solid var(--card-border);
+      border-radius: 16px;
+      padding: 0.75rem;
       display: flex;
       flex-direction: column;
       align-items: center;
@@ -74,7 +114,6 @@
     .video-wrapper {
       position: relative;
       width: 100%;
-      max-width: 420px;
       aspect-ratio: 1 / 1;
       border-radius: 12px;
       overflow: hidden;
@@ -94,12 +133,12 @@
       display: none;
     }
 
-    /* Target Reticle Overlay */
+    /* Target Reticle */
     .reticle {
       position: absolute;
       width: 170px;
       height: 170px;
-      border: 2px dashed rgba(56, 189, 248, 0.75);
+      border: 2px dashed rgba(56, 189, 248, 0.8);
       border-radius: 50%;
       pointer-events: none;
       box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.35);
@@ -107,13 +146,13 @@
     }
     @keyframes pulse {
       0%, 100% { transform: scale(1); border-color: rgba(56, 189, 248, 0.7); }
-      50% { transform: scale(1.05); border-color: rgba(56, 189, 248, 1); }
+      50% { transform: scale(1.04); border-color: rgba(56, 189, 248, 1); }
     }
 
     .reticle-label {
       position: absolute;
-      bottom: 12px;
-      background: rgba(15, 23, 42, 0.8);
+      bottom: 10px;
+      background: rgba(9, 13, 22, 0.85);
       backdrop-filter: blur(4px);
       padding: 4px 12px;
       border-radius: 20px;
@@ -126,20 +165,20 @@
     .controls-row {
       display: flex;
       flex-wrap: wrap;
-      gap: 0.65rem;
-      margin-top: 0.9rem;
+      gap: 0.5rem;
+      margin-top: 0.75rem;
       justify-content: center;
       width: 100%;
     }
 
     button {
       background: var(--primary);
-      color: #0f172a;
+      color: #090d16;
       border: none;
-      padding: 0.6rem 1.2rem;
+      padding: 0.65rem 1.15rem;
       font-size: 0.9rem;
       font-weight: 700;
-      border-radius: 8px;
+      border-radius: 10px;
       cursor: pointer;
       display: inline-flex;
       align-items: center;
@@ -147,31 +186,32 @@
       transition: background 0.2s, transform 0.1s;
     }
     button:hover { background: var(--primary-hover); }
-    button:active { transform: scale(0.98); }
-    button:disabled { opacity: 0.5; cursor: not-allowed; }
+    button:active { transform: scale(0.97); }
+    button:disabled { opacity: 0.4; cursor: not-allowed; }
 
     button.secondary {
-      background: var(--border);
+      background: #23304c;
       color: var(--text);
     }
-    button.secondary:hover { background: #475569; }
+    button.secondary:hover { background: #334469; }
 
     .toggle-label {
       display: flex;
       align-items: center;
       gap: 0.4rem;
-      font-size: 0.82rem;
+      font-size: 0.8rem;
       color: var(--text-muted);
       cursor: pointer;
       user-select: none;
+      margin-top: 0.25rem;
     }
 
     /* Results Card */
     .result-card {
       background: var(--card-bg);
-      border: 1px solid var(--border);
-      border-radius: 14px;
-      padding: 1.15rem;
+      border: 1px solid var(--card-border);
+      border-radius: 16px;
+      padding: 1rem;
       display: none;
       animation: fadeIn 0.3s ease-out;
     }
@@ -181,25 +221,25 @@
       display: flex;
       justify-content: space-between;
       align-items: flex-start;
-      margin-bottom: 0.65rem;
+      margin-bottom: 0.5rem;
     }
-    .result-title { font-size: 1.25rem; font-weight: 800; }
+    .result-title { font-size: 1.15rem; font-weight: 800; color: #fff; }
     .badge {
       display: inline-block;
-      padding: 0.25rem 0.6rem;
+      padding: 0.2rem 0.55rem;
       border-radius: 6px;
-      font-size: 0.78rem;
-      font-weight: 700;
+      font-size: 0.75rem;
+      font-weight: 800;
       color: #fff;
     }
 
     .prob-bar-container {
       width: 100%;
-      height: 10px;
-      background: var(--border);
+      height: 9px;
+      background: #23304c;
       border-radius: 5px;
       overflow: hidden;
-      margin: 0.4rem 0 0.8rem;
+      margin: 0.35rem 0 0.75rem;
     }
     .prob-bar-fill {
       height: 100%;
@@ -210,17 +250,25 @@
 
     .class-dist-list {
       display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(135px, 1fr));
-      gap: 0.45rem;
-      margin-top: 0.75rem;
-      font-size: 0.78rem;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 0.4rem;
+      margin-top: 0.5rem;
+      font-size: 0.75rem;
     }
     .class-dist-item {
-      background: #0f172a;
-      padding: 0.45rem 0.65rem;
+      background: #090d16;
+      padding: 0.4rem 0.6rem;
       border-radius: 6px;
       display: flex;
       justify-content: space-between;
+      border: 1px solid #1a253c;
+    }
+
+    footer {
+      text-align: center;
+      font-size: 0.7rem;
+      color: #64748b;
+      margin-top: 0.5rem;
     }
 
     .hidden { display: none !important; }
@@ -228,24 +276,31 @@
 </head>
 <body>
 
+  <!-- Medical Notice Modal (First Load) -->
+  <div class="modal-overlay" id="medicalModal">
+    <div class="modal-content">
+      <div class="modal-icon">⚠️</div>
+      <div class="modal-title">Important Medical Notice</div>
+      <div class="modal-text">
+        <strong>This application is an educational and AI research prototype only.</strong>
+        <br><br>
+        • It is <strong>NOT a medical diagnostic device</strong> or clinical tool.<br>
+        • It does <strong>NOT replace a qualified dermatologist or doctor</strong>.<br>
+        • Always see a licensed medical doctor for any skin spot, mole change, bleeding, or health concern.
+      </div>
+      <button class="modal-btn" id="agreeBtn">I Understand &amp; Agree</button>
+    </div>
+  </div>
+
   <div class="container">
     <header>
       <h1>🔬 TinyDerm Vision</h1>
-      <p>100% Client-Side In-Browser AI Scanner (No Server Required)</p>
+      <p>100% In-Browser Skin Spot Scanner (Zero Server Uploads)</p>
     </header>
 
-    <!-- Medical Disclaimer -->
-    <div class="disclaimer-box">
-      <div class="disclaimer-icon">⚠️</div>
-      <div>
-        <strong>Research-Only Prototype Notice:</strong>
-        This software is an experimental research prototype running client-side machine learning. It is <strong>NOT a medical device or diagnostic tool</strong> and does not substitute for qualified medical judgment. Always consult a licensed medical doctor or dermatologist for professional evaluation of any skin condition.
-      </div>
-    </div>
-
-    <!-- Model Status Badge -->
+    <!-- Model Status -->
     <div class="status-badge" id="statusBadge">
-      ⏳ Initializing browser AI engine &amp; loading model...
+      ⏳ Initializing browser AI engine...
     </div>
 
     <!-- Live Viewfinder -->
@@ -254,19 +309,20 @@
         <video id="webcam" autoplay playsinline muted></video>
         <canvas id="snapshotCanvas"></canvas>
         <div class="reticle" id="reticle"></div>
-        <div class="reticle-label" id="reticleLabel">Align Lesion Inside Reticle</div>
+        <div class="reticle-label" id="reticleLabel">Align Spot Inside Circle</div>
       </div>
 
       <div class="controls-row">
         <button id="startCamBtn" disabled>📷 Start Camera</button>
-        <button id="snapBtn" class="secondary" disabled>⚡ Snap &amp; Identify</button>
-        <button id="retakeBtn" class="secondary hidden">🔄 Retake / Resume</button>
-
-        <label class="toggle-label">
-          <input type="checkbox" id="autoSnapToggle" checked>
-          <span>Auto-Snap on Identification (Ding! 🔔)</span>
-        </label>
+        <button id="flipCamBtn" class="secondary hidden">🔄 Flip Camera</button>
+        <button id="snapBtn" class="secondary" disabled>⚡ Snap &amp; Check</button>
+        <button id="retakeBtn" class="secondary hidden">🔄 Scan Another</button>
       </div>
+
+      <label class="toggle-label">
+        <input type="checkbox" id="autoSnapToggle" checked>
+        <span>Auto-Snap on confident detection (Ding! 🔔)</span>
+      </label>
 
       <div class="controls-row" style="margin-top: 0.4rem;">
         <label class="toggle-label" style="text-decoration: underline; cursor: pointer;">
@@ -276,44 +332,64 @@
       </div>
     </div>
 
-    <!-- Result Display Card -->
+    <!-- Results Display -->
     <div class="result-card" id="resultCard">
       <div class="result-header">
         <div>
           <div class="result-title" id="resName">Melanocytic Nevus (NV)</div>
-          <div style="font-size: 0.82rem; color: var(--text-muted); margin-top: 2px;" id="resDesc">Common benign mole.</div>
+          <div style="font-size: 0.78rem; color: var(--text-muted); margin-top: 2px;" id="resDesc">Common benign mole.</div>
         </div>
         <span class="badge" id="resBadge">Benign</span>
       </div>
 
-      <div style="display: flex; justify-content: space-between; font-size: 0.85rem; font-weight: 600;">
-        <span>Confidence Probability</span>
+      <div style="display: flex; justify-content: space-between; font-size: 0.8rem; font-weight: 600;">
+        <span>Model Confidence</span>
         <span id="resConfidence">94.2%</span>
       </div>
       <div class="prob-bar-container">
         <div class="prob-bar-fill" id="resBar"></div>
       </div>
 
-      <div style="font-size: 0.8rem; font-weight: 600; margin-top: 0.65rem; color: var(--text-muted);">
-        Class Probability Distribution:
+      <div style="font-size: 0.75rem; font-weight: 600; color: var(--text-muted);">
+        All 7 Category Probabilities:
       </div>
       <div class="class-dist-list" id="resDistList"></div>
     </div>
+
+    <footer>
+      TinyDerm Lab • Research Prototype • Consult a Physician
+    </footer>
   </div>
 
   <script>
+    // Handle Medical Notice Modal
+    const modal = document.getElementById("medicalModal");
+    const agreeBtn = document.getElementById("agreeBtn");
+    
+    // Check if previously accepted in this session
+    if (sessionStorage.getItem("tinyderm_disclaimer_accepted") === "true") {
+      modal.classList.add("hidden");
+    }
+
+    agreeBtn.addEventListener("click", () => {
+      sessionStorage.setItem("tinyderm_disclaimer_accepted", "true");
+      modal.classList.add("hidden");
+      // Prime audio context on user tap
+      playDing();
+    });
+
     const CLASSES = ["MEL", "NV", "BCC", "AKIEC", "BKL", "DF", "VASC"];
     const CLASS_INFO = {
-      MEL: { name: "Melanoma (MEL)", type: "Malignant", desc: "Malignant skin cancer arising from melanocytes. Requires prompt professional medical evaluation.", color: "#ef4444" },
-      NV: { name: "Melanocytic Nevus (NV)", type: "Benign", desc: "Common benign mole or birthmark composed of melanocytes.", color: "#10b981" },
-      BCC: { name: "Basal Cell Carcinoma (BCC)", type: "Malignant", desc: "Most common type of skin cancer; locally invasive, usually slow-growing.", color: "#f97316" },
-      AKIEC: { name: "Actinic Keratosis / Bowen's (AKIEC)", type: "Pre-cancerous", desc: "Pre-malignant scaly lesion caused by cumulative sun exposure.", color: "#eab308" },
-      BKL: { name: "Benign Keratosis (BKL)", type: "Benign", desc: "Seborrheic keratosis, solar lentigo, or lichen-planus-like keratosis.", color: "#38bdf8" },
-      DF: { name: "Dermatofibroma (DF)", type: "Benign", desc: "Benign fibrous nodule commonly located on the limbs.", color: "#64748b" },
-      VASC: { name: "Vascular Lesion (VASC)", type: "Benign", desc: "Cherry angioma, hemangioma, or pyogenic granuloma.", color: "#a855f7" }
+      MEL: { name: "Melanoma (MEL)", type: "Malignant", desc: "Malignant cancer of pigment cells. Consult a doctor.", color: "#ef4444" },
+      NV: { name: "Common Mole (NV)", type: "Benign", desc: "Common benign melanocytic mole.", color: "#10b981" },
+      BCC: { name: "Basal Cell Carcinoma (BCC)", type: "Malignant", desc: "Common skin cancer; locally invasive.", color: "#f97316" },
+      AKIEC: { name: "Actinic Keratosis (AKIEC)", type: "Pre-cancerous", desc: "Sun-induced pre-malignant scaly patch.", color: "#eab308" },
+      BKL: { name: "Benign Keratosis (BKL)", type: "Benign", desc: "Harmless seborrheic keratosis or age spot.", color: "#38bdf8" },
+      DF: { name: "Dermatofibroma (DF)", type: "Benign", desc: "Harmless firm fibrous bump.", color: "#64748b" },
+      VASC: { name: "Vascular Spot (VASC)", type: "Benign", desc: "Harmless cherry angioma or blood spot.", color: "#a855f7" }
     };
 
-    // Native Web Audio Ding Synthesizer
+    // Native Web Audio Chime (Zero external audio file needed)
     let audioCtx = null;
     function playDing() {
       try {
@@ -332,8 +408,8 @@
         osc2.type = "triangle";
         osc2.frequency.setValueAtTime(1320, now);
 
-        gain.gain.setValueAtTime(0.3, now);
-        gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.6);
+        gain.gain.setValueAtTime(0.35, now);
+        gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.55);
 
         osc1.connect(gain);
         osc2.connect(gain);
@@ -341,16 +417,17 @@
 
         osc1.start(now);
         osc2.start(now);
-        osc1.stop(now + 0.6);
-        osc2.stop(now + 0.6);
+        osc1.stop(now + 0.55);
+        osc2.stop(now + 0.55);
       } catch (e) {
-        console.warn("Audio chime failed:", e);
+        console.warn("Audio chime:", e);
       }
     }
 
     const video = document.getElementById("webcam");
     const canvas = document.getElementById("snapshotCanvas");
     const startCamBtn = document.getElementById("startCamBtn");
+    const flipCamBtn = document.getElementById("flipCamBtn");
     const snapBtn = document.getElementById("snapBtn");
     const retakeBtn = document.getElementById("retakeBtn");
     const autoSnapToggle = document.getElementById("autoSnapToggle");
@@ -372,48 +449,65 @@
     let isFrozen = false;
     let stream = null;
     let scanTimer = null;
+    let currentFacingMode = "environment"; // default to rear camera on mobile
 
     // Load ONNX Model inside client browser
     async function initModel() {
       try {
         ort.env.wasm.numThreads = 2;
-        // Try local model.onnx
         ortSession = await ort.InferenceSession.create("./model.onnx", {
           executionProviders: ["wasm"]
         });
         inputName = ortSession.inputNames[0];
-        statusBadge.innerHTML = "✅ Browser AI Ready (100% Client-Side Inference)";
+        statusBadge.innerHTML = "✅ AI Ready (100% In-Browser Inference)";
         statusBadge.style.color = "#10b981";
         startCamBtn.disabled = false;
       } catch (err) {
         console.error("Failed to load model.onnx:", err);
-        statusBadge.innerHTML = "❌ Model load error. Verify model.onnx is in the same directory.";
+        statusBadge.innerHTML = "❌ Model load error. Keep model.onnx in the same folder.";
         statusBadge.style.color = "#ef4444";
       }
     }
     initModel();
 
-    // Start Camera
+    // Start / Restart Camera
+    async function setupCamera() {
+      if (stream) {
+        stream.getTracks().forEach(t => t.stop());
+      }
+      stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: { ideal: currentFacingMode }, width: { ideal: 640 }, height: { ideal: 640 } }
+      });
+      video.srcObject = stream;
+      video.style.display = "block";
+      canvas.style.display = "none";
+      isFrozen = false;
+
+      startCamBtn.classList.add("hidden");
+      flipCamBtn.classList.remove("hidden");
+      snapBtn.disabled = false;
+      retakeBtn.classList.add("hidden");
+      reticle.classList.remove("hidden");
+      reticleLabel.classList.remove("hidden");
+
+      startScanningLoop();
+    }
+
     startCamBtn.addEventListener("click", async () => {
       try {
-        stream = await navigator.mediaDevices.getUserMedia({
-          video: { facingMode: { ideal: "environment" }, width: { ideal: 640 }, height: { ideal: 640 } }
-        });
-        video.srcObject = stream;
-        video.style.display = "block";
-        canvas.style.display = "none";
-        isFrozen = false;
-
-        startCamBtn.classList.add("hidden");
-        snapBtn.disabled = false;
-        retakeBtn.classList.add("hidden");
-        reticle.classList.remove("hidden");
-        reticleLabel.classList.remove("hidden");
-
-        playDing(); // Prime audio context
-        startScanningLoop();
+        await setupCamera();
       } catch (e) {
-        alert("Camera error: " + e.message);
+        alert("Camera access denied or unavailable: " + e.message);
+      }
+    });
+
+    // Flip Camera button (Rear vs Front)
+    flipCamBtn.addEventListener("click", async () => {
+      currentFacingMode = (currentFacingMode === "environment") ? "user" : "environment";
+      try {
+        await setupCamera();
+      } catch (e) {
+        console.warn("Flip camera error:", e);
       }
     });
 
@@ -421,7 +515,6 @@
     const MEAN = [0.485, 0.456, 0.406];
     const STD = [0.229, 0.224, 0.225];
 
-    // Crop center square and create Float32 NCHW tensor
     function extractTensorFromElement(sourceElement) {
       canvas.width = 224;
       canvas.height = 224;
@@ -436,7 +529,6 @@
       ctx.drawImage(sourceElement, startX, startY, size, size, 0, 0, 224, 224);
       const imgData = ctx.getImageData(0, 0, 224, 224).data;
 
-      // CHW array (3 x 224 x 224)
       const floatData = new Float32Array(3 * 224 * 224);
       const planeSize = 224 * 224;
 
@@ -453,7 +545,6 @@
       return new ort.Tensor("float32", floatData, [1, 3, 224, 224]);
     }
 
-    // Softmax calculation
     function softmax(arr) {
       const maxVal = Math.max(...arr);
       const exps = arr.map(x => Math.exp(x - maxVal));
@@ -475,8 +566,7 @@
         const logits = Array.from(results[outputName].data);
         const probs = softmax(logits);
 
-        let maxIdx = 0;
-        let maxProb = probs[0];
+        let maxIdx = 0, maxProb = probs[0];
         for (let i = 1; i < probs.length; i++) {
           if (probs[i] > maxProb) {
             maxProb = probs[i];
@@ -486,14 +576,13 @@
 
         const topClass = CLASSES[maxIdx];
 
-        // Trigger condition: high probability or manual snap
         if ((maxProb >= 0.70 && autoSnapToggle.checked) || isManual) {
           freezeSnapshot();
           playDing();
           displayResults(topClass, maxProb, probs);
         }
       } catch (err) {
-        console.error("Inference run error:", err);
+        console.error("Inference error:", err);
       }
     }
 
@@ -558,7 +647,7 @@
       resultCard.style.display = "block";
     }
 
-    // File Upload Fallback
+    // Photo file upload
     fileUpload.addEventListener("change", (e) => {
       const file = e.target.files[0];
       if (!file || !ortSession) return;
