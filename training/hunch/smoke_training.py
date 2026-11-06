@@ -1,9 +1,10 @@
 from pathlib import Path
+import os
 import pandas as pd
 import yaml
 from tinyderm.train import train_student_model
 from tinyderm.experiment_db import ExperimentDB
-m = pd.read_csv(r'C:\Users\rusty\Downloads\TinyDerm\data\splits\split_manifest.csv')
+m = pd.read_csv(Path(os.environ.get("TINYDERM_MANIFEST", Path(__file__).resolve().parents[2] / "data" / "splits" / "split_manifest.csv")))
 m = m[m['split'].isin(['train','val'])].copy()
 m = m.groupby(['split', 'class_label'], group_keys=False).head(8).copy()
 config = yaml.safe_load(Path('config/default.yaml').read_text())
