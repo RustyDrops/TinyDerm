@@ -27,3 +27,17 @@ runs/**/*.onnx
 # OS files
 .DS_Store
 Thumbs.db
+
+# Research handoff: keep data, caches, predictions and weights local
+**/__pycache__/
+**/.pytest_cache/
+**/data/
+**/images/
+**/*image*cache*/
+**/*model-cache*/
+**/*.pth
+**/*.npz
+**/*.jpg
+**/*.jpeg
+**/*.png
+**/campaign/runs/
