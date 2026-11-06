@@ -7,10 +7,11 @@ import sys
 import time
 from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).parent / 'training-review'))
+REPO_ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(REPO_ROOT / "training-review"))
 import numpy as np
 import pandas as pd
-os.environ.setdefault("HF_HOME", str(Path(__file__).parent / "training-review" / "model-cache"))
+os.environ.setdefault("HF_HOME", str(REPO_ROOT / "training-review" / "model-cache"))
 import timm
 import torch
 import torch.nn as nn
