@@ -14,7 +14,7 @@ The latest 18-run/25-decision campaign is paused at its enforced caps. The promo
 | 4 | H031 / image-only baseline | 52711 / 3 | 0.72824 | 0.82107 | VASC -0.01562 | Fails macro-F1 target |
 | 5 | H033 / image-only baseline | 52716 / 3 | 0.71494 | 0.80941 | BCC -0.03913 | Different seed/folds; descriptive seed sensitivity |
 
-These are exploratory, repeatedly selected grouped development-CV estimates on 9,009 ISIC 2018 development images. H033's fold assignment differs. H028's reported epoch-four intermediate was under a five-epoch schedule. See `training/results/top-five/campaign_synthesis_2026-11-05.md` and the five JSON run reports for source detail. H001 is the reference despite H028's higher raw score because safeguards govern promotion.
+These are exploratory, repeatedly selected grouped development-CV estimates on 9,009 ISIC 2018 development images. H033's fold assignment differs. H028's reported epoch-four intermediate was under a five-epoch schedule. See `training/results/top-five/campaign_synthesis_2026-11-05.md` and `training/results/top-five/models.json` for the ranked aggregate results. H001 is the reference despite H028's higher raw score because safeguards govern promotion.
 
 The five model checkpoints are retained in the source workstation's campaign run folders, not this repository. Each run uses three fold checkpoints per arm (~88 MB each); GitHub is not an appropriate host for these multi-gigabyte fold bundles. Obtain authorized checkpoint artifacts separately if they are needed. This source package contains no checkpoint binary.
 
