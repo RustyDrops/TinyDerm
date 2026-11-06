@@ -1,0 +1,18 @@
+{
+  "scope": "top five recent selected-arm development campaign candidates, ranked by macro-F1",
+  "promotion_rule": {
+    "macro_f1_minimum": 0.73851,
+    "maximum_class_recall_regression_vs_H001": 0.05,
+    "passed_candidates": 0
+  },
+  "candidates": [
+    {"rank": 1, "hypothesis": "H028", "run_id": "run_20261105T180200Z_33916d10", "arm": "Hunch", "seed": 52711, "epochs": 5, "macro_f1": 0.73096, "accuracy": 0.81774, "lowest_recall_delta_vs_H001": {"class": "DF", "delta": -0.06796}, "promotion": "failed target and DF safeguard"},
+    {"rank": 2, "hypothesis": "H032", "run_id": "run_20261105T213028Z_17e1c9bb", "arm": "image-only baseline", "seed": 52711, "epochs": 4, "macro_f1": 0.72909, "accuracy": 0.82773, "lowest_recall_delta_vs_H001": {"class": "AKIEC", "delta": -0.06102}, "promotion": "failed target and AKIEC safeguard"},
+    {"rank": 3, "hypothesis": "H001", "run_id": "run_20261104T185647Z_a16a00a9", "arm": "Hunch", "seed": 52711, "epochs": 3, "macro_f1": 0.72851, "accuracy": 0.81885, "lowest_recall_delta_vs_H001": null, "promotion": "campaign reference; below target"},
+    {"rank": 4, "hypothesis": "H031", "run_id": "run_20261105T195021Z_89314c90", "arm": "image-only baseline", "seed": 52711, "epochs": 3, "macro_f1": 0.72824, "accuracy": 0.82107, "lowest_recall_delta_vs_H001": {"class": "VASC", "delta": -0.01562}, "promotion": "failed target"},
+    {"rank": 5, "hypothesis": "H033", "run_id": "run_20261105T223655Z_7a28a9d5", "arm": "image-only baseline", "seed": 52716, "epochs": 3, "macro_f1": 0.71494, "accuracy": 0.80941, "lowest_recall_delta_vs_H001": {"class": "BCC", "delta": -0.03913}, "promotion": "failed target; different fold assignment"}
+  ],
+  "metrics_are": "repeatedly selected exploratory grouped development-CV estimates, not independent or clinical estimates",
+  "checkpoint_policy": "weights are retained locally and not included; fold checkpoint bundles exceed suitable GitHub artifact limits"
+}
+
