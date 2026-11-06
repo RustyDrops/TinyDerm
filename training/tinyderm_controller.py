@@ -20,9 +20,9 @@ import time
 from typing import Any
 
 ROOT = Path(__file__).resolve().parent
-PYTHON = Path(r"C:\Users\rusty\Downloads\TinyDerm\.venv\Scripts\python.exe")
-MANIFEST = Path(r"C:\Users\rusty\Downloads\TinyDerm\data\splits\split_manifest.csv")
-LOCK = Path(r"C:\Users\rusty\Downloads\TinyDerm\data\splits\holdout_lock.json")
+PYTHON = Path(os.environ.get("TINYDERM_PYTHON", sys.executable))
+MANIFEST = Path(os.environ.get("TINYDERM_MANIFEST", ROOT / "data" / "splits" / "split_manifest.csv"))
+LOCK = Path(os.environ.get("TINYDERM_HOLDOUT_LOCK", ROOT / "data" / "splits" / "holdout_lock.json"))
 HUNCH_CACHE = ROOT / "training-review" / "hunch-isic2019-expanded" / "embeddings.sqlite"
 DINOV2_CACHE = ROOT / "training-review" / "model-cache" / "hub" / "models--timm--vit_small_patch14_dinov2.lvd142m" / "snapshots"
 STATE_DIR = ROOT / "tinyderm_research" / "controller"
