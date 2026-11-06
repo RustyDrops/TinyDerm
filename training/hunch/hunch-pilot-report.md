@@ -75,7 +75,7 @@ Classifier head search on cached Hunch embeddings found an RBF SVM with macro F1
 
 To prepare an ensemble research candidate, a second full-development logistic-assisted model was trained with seed 7 for three fixed epochs. It used the same pinned Hunch encoder, grouped out-of-fold teacher targets, GPU, and weighted loss. Training loss was `0.4164`, `0.3899`, and `0.3859`. The checkpoint `hunch-assisted-full-dev-seed7/hunch_assisted_full_dev_epoch3.pt` has no validation score because all development examples were used in training. It is paired with the seed 42 epoch 1 full-development checkpoint in `hunch-assisted-ensemble-candidate.json`; the reported ensemble score comes from the corresponding train-only models before full-development refitting and is not a measured score for the refit pair.
 
-The original camera app, mobile browser bundle, launchers and ZIP were removed from `C:\Users\rusty\Downloads\TinyDerm`; the replacement photo-notes page was also removed from this workspace. The original dataset, research code and model runs remain in place.
+Historical note: product-facing app artifacts are outside this training handoff. The research dataset, source and run artifacts are maintained separately under their applicable access and licensing terms.
 
 ## Full development run
 
