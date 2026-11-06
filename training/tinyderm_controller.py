@@ -19,12 +19,12 @@ import tempfile
 import time
 from typing import Any
 
-ROOT = Path(__file__).resolve().parent
+ROOT = Path(__file__).resolve().parents[1]
 PYTHON = Path(os.environ.get("TINYDERM_PYTHON", sys.executable))
 MANIFEST = Path(os.environ.get("TINYDERM_MANIFEST", ROOT / "data" / "splits" / "split_manifest.csv"))
 LOCK = Path(os.environ.get("TINYDERM_HOLDOUT_LOCK", ROOT / "data" / "splits" / "holdout_lock.json"))
-HUNCH_CACHE = ROOT / "training-review" / "hunch-isic2019-expanded" / "embeddings.sqlite"
-DINOV2_CACHE = ROOT / "training-review" / "model-cache" / "hub" / "models--timm--vit_small_patch14_dinov2.lvd142m" / "snapshots"
+HUNCH_CACHE = Path(os.environ.get("TINYDERM_HUNCH_CACHE", ROOT / "training-review" / "hunch-isic2019-expanded" / "embeddings.sqlite"))
+DINOV2_CACHE = Path(os.environ.get("TINYDERM_DINOV2_CACHE", ROOT / "training-review" / "model-cache" / "hub" / "models--timm--vit_small_patch14_dinov2.lvd142m" / "snapshots"))
 STATE_DIR = ROOT / "tinyderm_research" / "controller"
 STATE_FILE = STATE_DIR / "state.json"
 CONTROL_FILE = STATE_DIR / "control.json"
