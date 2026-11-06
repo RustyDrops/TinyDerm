@@ -15,13 +15,13 @@ import time
 import uuid
 from typing import Any
 
-ROOT = Path(__file__).resolve().parent
+ROOT = Path(__file__).resolve().parents[1]
 PYTHON = Path(os.environ.get("TINYDERM_PYTHON", sys.executable))
 MANIFEST = Path(os.environ.get("TINYDERM_MANIFEST", ROOT / "data" / "splits" / "split_manifest.csv"))
-HUNCH_CACHE = ROOT / "training-review" / "hunch-isic2019-expanded" / "embeddings.sqlite"
-TRAINER = ROOT / "train_melanoma_multitask_cv.py"
-DIRECTOR_PROMPT = ROOT / "tinyderm_research" / "director_v2.md"
-DECISION_SCHEMA = ROOT / "tinyderm_research" / "decision_schema.json"
+HUNCH_CACHE = Path(os.environ.get("TINYDERM_HUNCH_CACHE", ROOT / "training-review" / "hunch-isic2019-expanded" / "embeddings.sqlite"))
+TRAINER = ROOT / "training" / "train_melanoma_multitask_cv.py"
+DIRECTOR_PROMPT = ROOT / "training" / "research" / "director_v2.md"
+DECISION_SCHEMA = ROOT / "training" / "research" / "decision_schema.json"
 CAMPAIGN_DIR = ROOT / "tinyderm_research" / "campaign"
 STATE_FILE = ROOT / "tinyderm_research" / "controller" / "state.json"
 CONTROL_FILE = ROOT / "tinyderm_research" / "controller" / "control.json"
