@@ -32,7 +32,7 @@ The five model checkpoints are retained in the source workstation's campaign run
 2. Obtain ISIC 2018 / HAM10000 through the official dataset source. ISIC data terms include noncommercial restrictions; follow the dataset's license and citation. Keep raw image archives and decoded image caches local.
 3. Provide the original manifest and image root to the safe-data adapter. The current campaign runner includes workstation-specific default paths; edit its `PYTHON`, `MANIFEST`, and `HUNCH_CACHE` constants for your machine, then review the allowlist and data gates before execution.
 4. Set `EG2_MODEL_DIR` to the local EmbeddingGemma 2 snapshot. Do not commit the model snapshot, Hunch embedding database, or cache.
-5. Read `training/research/campaign_synthesis_2026-11-05.md`, `training/research/h001_h028_h031_error_audit.md`, and this handoff. Check controller status and preflight before any new run. The existing campaign is capped; do not try to run it past its caps. A new campaign needs a new owner-authorized budget and valid decision schema.
+5. Read `training/results/top-five/campaign_synthesis_2026-11-05.md`, `training/results/top-five/h001_h028_h031_error_audit.md`, and this handoff. Check controller status and preflight before any new run. The existing campaign is capped; do not try to run it past its caps. A new campaign needs a new owner-authorized budget and valid decision schema.
 
 Useful command shapes (adjust Python and data paths locally):
 
