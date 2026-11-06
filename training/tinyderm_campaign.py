@@ -16,8 +16,8 @@ import uuid
 from typing import Any
 
 ROOT = Path(__file__).resolve().parent
-PYTHON = Path(r"C:\Users\rusty\Downloads\TinyDerm\.venv\Scripts\python.exe")
-MANIFEST = Path(r"C:\Users\rusty\Downloads\TinyDerm\data\splits\split_manifest.csv")
+PYTHON = Path(os.environ.get("TINYDERM_PYTHON", sys.executable))
+MANIFEST = Path(os.environ.get("TINYDERM_MANIFEST", ROOT / "data" / "splits" / "split_manifest.csv"))
 HUNCH_CACHE = ROOT / "training-review" / "hunch-isic2019-expanded" / "embeddings.sqlite"
 TRAINER = ROOT / "train_melanoma_multitask_cv.py"
 DIRECTOR_PROMPT = ROOT / "tinyderm_research" / "director_v2.md"
