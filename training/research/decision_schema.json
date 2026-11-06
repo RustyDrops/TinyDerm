@@ -1,0 +1,66 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "TinyDerm Luna Director Decision",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "decision": {"type": "string", "enum": ["RUN_DIAGNOSTIC", "RUN_NEXT_EXPERIMENT", "REPLAN_STRATEGY", "ESCALATE", "PAUSE_FOR_REVIEW", "RETAIN_CURRENT_BEST", "COMPLETE"]},
+    "run_id_reference": {"type": ["string", "null"]},
+    "current_phase": {"type": "string", "enum": ["baseline", "teacher_audit", "distillation", "resolution", "class_balance", "seed_confirmation", "diagnostic", "escalation", "complete"]},
+    "accuracy_goal": {"type": "number", "enum": [0.93]},
+    "latest_validation_accuracy": {"type": ["number", "null"]},
+    "best_comparable_validation_accuracy": {"type": ["number", "null"]},
+    "hours_remaining": {"type": ["number", "null"]},
+    "diagnosis": {
+      "type": "object", "additionalProperties": false,
+      "properties": {
+        "primary": {"type": "string"},
+        "evidence_run_ids": {"type": "array", "items": {"type": "string"}},
+        "uncertainties": {"type": "array", "items": {"type": "string"}},
+        "alternative_explanations": {"type": "array", "items": {"type": "string"}}
+      },
+      "required": ["primary", "evidence_run_ids", "uncertainties", "alternative_explanations"]
+    },
+    "candidates": {
+      "type": "array",
+      "items": {
+        "type": "object", "additionalProperties": false,
+        "properties": {
+          "hypothesis_id": {"type": "string"},
+          "phase": {"type": "string", "enum": ["baseline", "teacher_audit", "distillation", "resolution", "class_balance", "seed_confirmation", "diagnostic"]},
+          "rationale": {"type": "string"},
+          "config_diff": {
+            "type": "object", "additionalProperties": false,
+            "properties": {
+              "epochs": {"type": ["integer", "null"]},
+              "image_size": {"type": ["integer", "null"]},
+              "batch_size": {"type": ["integer", "null"]},
+              "seed": {"type": ["integer", "null"]},
+              "unfreeze_blocks": {"type": ["integer", "null"]},
+              "distill_weight": {"type": ["number", "null"]},
+              "class_weight_strength": {"type": ["number", "null"]},
+              "backbone_lr": {"type": ["number", "null"]},
+              "head_lr": {"type": ["number", "null"]},
+              "confidence_weighted_distillation": {"type": ["boolean", "null"]}
+            },
+            "required": ["epochs", "image_size", "batch_size", "seed", "unfreeze_blocks", "distill_weight", "class_weight_strength", "backbone_lr", "head_lr", "confidence_weighted_distillation"]
+          },
+          "expected_observations": {"type": "array", "items": {"type": "string"}},
+          "falsification_criteria": {"type": "array", "items": {"type": "string"}},
+          "estimated_minutes": {"type": "integer"},
+          "risk_notes": {"type": "array", "items": {"type": "string"}}
+        },
+        "required": ["hypothesis_id", "phase", "rationale", "config_diff", "expected_observations", "falsification_criteria", "estimated_minutes", "risk_notes"]
+      }
+    },
+    "selected_hypothesis_id": {"type": ["string", "null"]},
+    "why_now": {"type": "string"},
+    "stop_or_escalation_reason": {"type": ["string", "null"]},
+    "plateau_strategy_pivot": {"type": ["string", "null"]},
+    "hunch_teacher_evidence_summary": {"type": "string"},
+    "short_lessons": {"type": "array", "items": {"type": "string"}},
+    "human_summary": {"type": "string"}
+  },
+  "required": ["decision", "run_id_reference", "current_phase", "accuracy_goal", "latest_validation_accuracy", "best_comparable_validation_accuracy", "hours_remaining", "diagnosis", "candidates", "selected_hypothesis_id", "why_now", "stop_or_escalation_reason", "plateau_strategy_pivot", "hunch_teacher_evidence_summary", "short_lessons", "human_summary"]
+}
+
