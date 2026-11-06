@@ -7,7 +7,7 @@ import os
 from pathlib import Path
 import sys
 
-PROJECT_ROOT = Path(os.environ.get("TINYDERM_ROOT", Path(__file__).resolve().parents[2]))
+PROJECT_ROOT = Path(os.environ.get("TINYDERM_ROOT", Path(__file__).resolve().parents[1]))
 MANIFEST = Path(os.environ.get("TINYDERM_MANIFEST", PROJECT_ROOT / "data" / "splits" / "split_manifest.csv"))
 ROOT = Path(__file__).resolve().parent
 sys.path.insert(0, str(PROJECT_ROOT))
