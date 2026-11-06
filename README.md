@@ -4,7 +4,7 @@
 
 TinyDerm studies compact dermatology image classifiers and teacher-guided training. Historical README claims about an untouched sealed holdout, a deployable camera app, and current model performance are retired: the final holdout was consumed in earlier work and must never be evaluated or described as independent evidence.
 
-See [TRAINING_CONTINUATION.md](TRAINING_CONTINUATION.md) for the current top five development candidates, the training stack (including Hunch and EmbeddingGemma 2), setup, continuation constraints, and research limits. Source-only training tools are in `training/`.
+See [TRAINING_CONTINUATION.md](TRAINING_CONTINUATION.md) for the current top five development candidates, the training stack (including Hunch and EmbeddingGemma 2), setup, continuation constraints, and research limits. See [MODEL_ARTIFACTS.md](MODEL_ARTIFACTS.md) for the inventory and notes on retained trained artifacts. Source-only training tools are in `training/`.
 
 ## Top five development candidates
 
